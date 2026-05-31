@@ -1,0 +1,9 @@
+# Never copy these into the Docker image
+
+node_modules        # installed fresh inside container
+.env                # secrets injected via docker-compose environment
+npm-debug.log
+.git
+.gitignore
+README.md
+uploads             # mounted as a volume — not baked into image
