@@ -175,30 +175,7 @@ const markResetTokenUsed = async (token) => {
   );
 };
 
-// ── STUDENT PROFILE ───────────────────────────────────────────
 
-const createStudentProfile = async (user_id) => {
-  await pool.query('INSERT INTO students (user_id) VALUES ($1)', [user_id]);
-};
-
-const findStudentByUserId = async (user_id) => {
-  const result = await pool.query(
-    `SELECT s.*, sc.name AS school_name, sc.paybill_number
-     FROM students s
-     LEFT JOIN schools sc ON s.school_id = sc.school_id
-     WHERE s.user_id = $1`,
-    [user_id]
-  );
-  return result.rows[0] || null;
-};
-
-const findStudentSummary = async (user_id) => {
-  const result = await pool.query(
-    'SELECT student_id, status, fee_balance FROM students WHERE user_id = $1',
-    [user_id]
-  );
-  return result.rows[0] || null;
-};
 
 module.exports = {
   // Find
@@ -223,8 +200,5 @@ module.exports = {
   findPasswordReset,
   invalidatePreviousResets,
   markResetTokenUsed,
-  // Student profile
-  createStudentProfile,
-  findStudentByUserId,
-  findStudentSummary,
+ 
 };
