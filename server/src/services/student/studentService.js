@@ -1,6 +1,6 @@
-const userRepository = require('../repositories/userRepository');
-const studentRepository = require('../repositories/studentRepository');
-const { fail } = require('./utils/auth.utils');
+const userRepository = require('../../repositories/userRepository');
+const studentRepository = require('../../repositories/studentRepository');
+const { fail } = require('../utils/authUtils');
 
 // ── GET PROFILE ───────────────────────────────────────────────
 const getProfile = async (user_id) => {

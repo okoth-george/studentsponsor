@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const userRepository = require('../repositories/userRepository');
 const { sendPasswordResetEmail } = require('../config/email');
-const { generateSecureToken, fail } = require('./utils/auth.utils');
+const { generateSecureToken, fail } = require('./utils/authUtils');
 
 // ── FORGOT PASSWORD ───────────────────────────────────────────
 const forgotPassword = async (email) => {

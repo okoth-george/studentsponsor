@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const userRepository = require('../repositories/userRepository');
 const studentRepository = require('../repositories/studentRepository');
 const { sendVerificationEmail } = require('../config/email');
-const { generateSecureToken, sanitizeUser, fail } = require('./utils/auth.utils');
+const { generateSecureToken, sanitizeUser, fail } = require('./utils/authUtils');
 
 // ── REGISTER ─────────────────────────────────────────────────
 const register = async ({ full_name, email, password, role, phone }) => {

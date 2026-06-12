@@ -176,29 +176,28 @@ const markResetTokenUsed = async (token) => {
 };
 
 
-
 module.exports = {
-  // Find
-  findByEmail,
-  findById,
-  findByVerifyToken,
-  // Create
-  create,
-  // Update
-  markEmailVerified,
-  setVerifyToken,
-  incrementLoginAttempts,
-  resetLoginAttempts,
-  updatePassword,
-  // Refresh tokens
-  saveRefreshToken,
-  findRefreshToken,
-  deleteRefreshToken,
-  deleteAllRefreshTokens,
-  // Password resets
+  
+  // Account Recovery & Validation
   savePasswordReset,
   findPasswordReset,
   invalidatePreviousResets,
   markResetTokenUsed,
- 
+  setVerifyToken,
+  markEmailVerified,
+
+  // Session & Security Management
+  saveRefreshToken,
+  findRefreshToken,
+  deleteRefreshToken,
+  deleteAllRefreshTokens,
+  incrementLoginAttempts,
+  resetLoginAttempts,
+
+  // Core CRUD
+  create,
+  findByEmail,
+  findById,
+  findByVerifyToken,
+  updatePassword,
 };

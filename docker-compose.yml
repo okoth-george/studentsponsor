@@ -1,15 +1,3 @@
-# ============================================================
-#  STUDENT SPONSOR SYSTEM — DOCKER COMPOSE
-#  Runs: PostgreSQL + Node.js API
-#  Usage:
-#    Start:        docker compose up -d
-#    Stop:         docker compose down
-#    Fresh start:  docker compose down -v && docker compose up -d
-#    Logs:         docker compose logs -f
-#    API logs:     docker compose logs -f api
-#    DB logs:      docker compose logs -f postgres
-# ============================================================
-
 services:
 
   # ── POSTGRESQL ─────────────────────────────────────────────
@@ -18,16 +6,16 @@ services:
     container_name: student_sponsor_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: student_sponsor
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5435:5432"
+      - "${DB_EXTERNAL_PORT}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./server/src/config/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d student_sponsor"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -40,57 +28,48 @@ services:
     container_name: student_sponsor_api
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "${PORT}:${PORT}"
     environment:
-      NODE_ENV: development
-      PORT: 5000
-      FRONTEND_URL: http://localhost:5173
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT}
+      FRONTEND_URL: ${FRONTEND_URL}
 
-      # Database — use service name 'postgres', NOT localhost
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: student_sponsor
-      DB_USER: postgres
-      DB_PASSWORD: postgres
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
 
-      # JWT
-      JWT_SECRET: 9f3c7b5a2d8e4a6f1c0b9e7d3a2f6c8e5b1a4d7c9e0f2a6b3c8d1e5f7a9b0c6d
-      JWT_EXPIRES_IN: 15m
-      REFRESH_TOKEN_SECRET: 7b1e9c4a6d2f8e3a0c5b7d1f9e6a2c4d8f0b3a7e1c6d9f2a5b8c0e4d7f1a3c6b
-      REFRESH_TOKEN_EXPIRES_IN: 7d
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
+      REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN}
 
-      # Email (Mailtrap for dev)
-      SMTP_HOST: sandbox.smtp.mailtrap.io
-      SMTP_PORT: 2525
-      SMTP_USER: e2926b596eaa3c
-      SMTP_PASS: c2bae0cfdf2e7a
-      EMAIL_FROM: noreply@studentsponsor.ke
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      EMAIL_FROM: ${EMAIL_FROM}
 
-      # App URLs
-      APP_URL: http://localhost:5000
-      CLIENT_URL: http://localhost:5173
+      APP_URL: ${APP_URL}
+      CLIENT_URL: ${CLIENT_URL}
 
-      # Account lockout
-      MAX_LOGIN_ATTEMPTS: 5
-      LOCK_TIME_MINUTES: 15
+      MAX_LOGIN_ATTEMPTS: ${MAX_LOGIN_ATTEMPTS}
+      LOCK_TIME_MINUTES: ${LOCK_TIME_MINUTES}
 
-      # M-Pesa
-      MPESA_CONSUMER_KEY: your_consumer_key
-      MPESA_CONSUMER_SECRET: your_consumer_secret
-      MPESA_SHORTCODE: 174379
-      MPESA_PASSKEY: your_passkey
-      MPESA_CALLBACK_URL: http://localhost:5000/api/payments/callback
-      MPESA_ENV: sandbox
+      MPESA_CONSUMER_KEY: ${MPESA_CONSUMER_KEY}
+      MPESA_CONSUMER_SECRET: ${MPESA_CONSUMER_SECRET}
+      MPESA_SHORTCODE: ${MPESA_SHORTCODE}
+      MPESA_PASSKEY: ${MPESA_PASSKEY}
+      MPESA_CALLBACK_URL: ${MPESA_CALLBACK_URL}
+      MPESA_ENV: ${MPESA_ENV}
 
-      # Cloudinary
-      CLOUDINARY_CLOUD_NAME: your_cloud_name
-      CLOUDINARY_API_KEY: your_api_key
-      CLOUDINARY_API_SECRET: your_api_secret
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
 
     volumes:
-      # Mount entire server folder into /app
       - ./server:/app
-      # Keep node_modules from the image — don't overwrite with host's
       - /app/node_modules
     depends_on:
       postgres:

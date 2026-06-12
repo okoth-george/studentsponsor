@@ -8,7 +8,7 @@ const {
   generateRefreshToken,
   sanitizeUser,
   fail
-} = require('./utils/auth.utils');
+} = require('./utils/authUtils');
 
 // ── LOGIN ─────────────────────────────────────────────────────
 const login = async (email, password) => {
