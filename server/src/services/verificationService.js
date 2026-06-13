@@ -65,6 +65,10 @@ const resendVerification = async (email) => {
 
   const verifyToken = generateSecureToken();
   const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  
+  if (process.env.NODE_ENV !== 'production') {
+  console.log(`[DEV] Email verify token for ${email}: ${verifyToken}`);
+    }
 
   await userRepository.setVerifyToken(user.user_id, verifyToken, verifyExpires);
   await sendVerificationEmail(user.email, user.full_name, verifyToken);

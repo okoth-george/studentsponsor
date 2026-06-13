@@ -2,7 +2,7 @@
 const userRepository = require('../repositories/userRepository');
 const studentRepository = require('../repositories/studentRepository');
 const sponsorRepository = require('../repositories/sponsorRepository'); // Imported correctly here!
-const { sanitizeUser, fail } = require('./utils/auth.utils');
+const { sanitizeUser, fail } = require('./utils/authUtils');
 
 const getProfile = async (user_id) => {
   // 1. Fetch base credentials from the unified users table

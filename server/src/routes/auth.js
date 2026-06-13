@@ -45,11 +45,11 @@ const passwordResetLimiter = rateLimit({
 });
 
 // ── PUBLIC ROUTES ─────────────────────────────────────────────
-router.post('/register',             registerLimiter,      validateRegister,      register);
-router.post('/login',                loginLimiter,         validateLogin,         login);
-router.get('/verify-email',                                                        verifyEmail);
-router.post('/resend-verification',  passwordResetLimiter,                        resendVerification);
-router.post('/forgot-password',      passwordResetLimiter,                        forgotPassword);
+router.post('/register',   registerLimiter,      validateRegister,      register);
+router.post('/login',       loginLimiter,         validateLogin,         login);
+router.get('/verify-email',                                         verifyEmail);
+router.post('/resend-verification',  passwordResetLimiter,     resendVerification);
+router.post('/forgot-password',      passwordResetLimiter,          forgotPassword);
 router.post('/reset-password',       passwordResetLimiter, validateResetPassword, resetPassword);
 router.post('/refresh',                                                            refreshToken);
 

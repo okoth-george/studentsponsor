@@ -42,6 +42,9 @@ app.use('/uploads', express.static('uploads'));
 
 const authRoutes = require('./routes/auth');
 
+const studentRoutes = require('./routes/studentRoutes');
+
+app.use('/api/students', studentRoutes);
 app.use('/api/auth', authRoutes);
 
 // ─────────────────────────────────────────────
