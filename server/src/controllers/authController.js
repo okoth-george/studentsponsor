@@ -1,5 +1,8 @@
 const { validationResult } = require('express-validator');
 const authService = require('../services/authService');
+const verificationService = require('../services/verificationService');
+const passwordService = require('../services/passwordService');
+const userService = require('../services/userService');
 
 /*
   CONTROLLER RESPONSIBILITY — only these three things:
@@ -39,7 +42,7 @@ const validate = (req, res) => {
 const register = async (req, res) => {
   if (!validate(req, res)) return;
   try {
-    const user = await authService.register(req.body);
+    const user = await verificationService.register(req.body);
     res.status(201).json({
       success: true,
       message: 'Account created. Please check your email to verify your account.',
@@ -54,7 +57,7 @@ const register = async (req, res) => {
 // GET /api/auth/verify-email?token=xxx
 const verifyEmail = async (req, res) => {
   try {
-    await authService.verifyEmail(req.query.token);
+    await verificationService.verifyEmail(req.query.token);
     res.status(200).json({
       success: true,
       message: 'Email verified successfully. You can now log in.',
@@ -68,7 +71,7 @@ const verifyEmail = async (req, res) => {
 // POST /api/auth/resend-verification
 const resendVerification = async (req, res) => {
   try {
-    await authService.resendVerification(req.body.email);
+    await verificationService.resendVerification(req.body.email);
     res.status(200).json({
       success: true,
       message: 'If this email exists and is unverified, a new link has been sent.',
@@ -136,7 +139,7 @@ const logout = async (req, res) => {
 // POST /api/auth/forgot-password
 const forgotPassword = async (req, res) => {
   try {
-    await authService.forgotPassword(req.body.email);
+    await passwordService.forgotPassword(req.body.email);
     res.status(200).json({
       success: true,
       message: 'If this email is registered, a reset link has been sent.',
@@ -152,7 +155,7 @@ const resetPassword = async (req, res) => {
   if (!validate(req, res)) return;
   try {
     const { token, new_password } = req.body;
-    await authService.resetPassword(token, new_password);
+    await passwordService.resetPassword(token, new_password);
     res.status(200).json({
       success: true,
       message: 'Password reset successfully. Please log in with your new password.',
@@ -166,7 +169,7 @@ const resetPassword = async (req, res) => {
 // GET /api/auth/profile  (protected)
 const getProfile = async (req, res) => {
   try {
-    const user = await authService.getProfile(req.user.user_id);
+    const user = await userService.getProfile(req.user.user_id);
     res.status(200).json({ success: true, user });
   } catch (err) {
     res.status(err.status || 500).json({ success: false, message: err.message });
@@ -179,7 +182,7 @@ const changePassword = async (req, res) => {
   if (!validate(req, res)) return;
   try {
     const { current_password, new_password } = req.body;
-    await authService.changePassword(req.user.user_id, current_password, new_password);
+    await passwordService.changePassword(req.user.user_id, current_password, new_password);
     res.clearCookie('refreshToken', refreshCookieOptions);
     res.status(200).json({
       success: true,
