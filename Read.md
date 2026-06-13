@@ -1,348 +1,322 @@
-# EduBridge – School Fee Debt Tracker & Bursary Matching Platform
+# EduBridge — Backend API
 
-## Project Overview
-
-EduBridge is a web-based platform designed to help students stay in school by connecting financially needy students with bursary providers, sponsors, donors, NGOs, foundations, and government funding opportunities.
-
-Many students miss classes, defer studies, or drop out because of unpaid school fees. At the same time, bursaries and sponsorship opportunities often exist but are difficult to discover, apply for, verify, and distribute transparently.
-
-EduBridge acts as the bridge between students who need financial assistance and organizations or individuals willing to provide educational support.
+A platform that connects financially needy students with bursary providers, sponsors, donors, NGOs, and government funding opportunities. EduBridge acts as the transparency and matching layer between students who need financial assistance and organizations willing to provide it.
 
 ---
 
-# Core Problem
+## Current Build Status
 
-Educational institutions frequently struggle with:
+**Phase:** MVP — Student Role (Backend)
+**Stack:** Node.js · Express.js · PostgreSQL · JWT
 
-* Students accumulating fee balances
-* Lack of visibility into students' financial needs
-* Inefficient bursary application processes
-* Fraudulent applications
-* Sponsors lacking transparency on how funds are used
-* Difficulty matching students with relevant funding opportunities
+What is built and working:
 
-Students often:
-
-* Don't know available bursaries
-* Miss application deadlines
-* Submit applications manually
-* Have no centralized platform to track applications
-
-Sponsors often:
-
-* Cannot easily identify deserving students
-* Lack tools to verify student information
-* Have no visibility into impact after funding
+- User registration with email verification
+- JWT authentication (access token + refresh token rotation)
+- Account lockout after failed login attempts
+- Password reset via email token
+- Student profile creation and update
+- Fee statement document upload
+- Admin student verification workflow
+- Role-based access control (student · sponsor · admin)
 
 ---
 
-# Solution
+## Project Structure
 
-EduBridge provides a centralized digital ecosystem where:
+```
+src/
+├── config/
+│   ├── db.js                  # PostgreSQL pool connection
+│   └── email.js               # Nodemailer transporter
+│
+├── controllers/
+│   ├── authController.js      # Register, login, logout, password, profile
+│   └── studentController.js   # Student profile CRUD + admin status update
+│
+├── middleware/
+│   ├── auth.js                # authenticate · authorize · optionalAuth
+│   └── validators.js          # express-validator rules for all routes
+│
+├── repositories/
+│   ├── userRepository.js      # All raw SQL for users table
+│   └── studentRepository.js   # All raw SQL for students table
+│
+├── routes/
+│   ├── authRoutes.js          # /api/auth/*
+│   └── studentRoutes.js       # /api/students/*
+│
+├── services/
+│   ├── authService.js         # Login · refresh · logout
+│   ├── verificationService.js # Register · verify email · resend
+│   ├── passwordService.js     # Forgot password · reset · change
+│   ├── userService.js         # getProfile (shared across roles)
+│   ├── studentService.js      # Student business logic
+│   └── utils/
+│       └── authUtils.js       # Token generation · sanitizeUser · fail()
+│
+uploads/
+└── documents/                 # Fee statement uploads (local, MVP only)
 
-1. Students register and create profiles.
-2. Schools verify student information.
-3. Sponsors create funding opportunities.
-4. Students apply for bursaries.
-5. Administrators review and validate applications.
-6. Sponsors approve funding.
-7. Funds are tracked transparently.
-8. Students and sponsors monitor application progress in real time.
-
----
-
-# Main User Roles
-
-## Student
-
-Students can:
-
-* Register and verify email
-* Complete profile information
-* View fee balances
-* Upload supporting documents
-* Search available bursaries
-* Apply for bursaries
-* Track application status
-* Receive notifications
-* View funding history
-
----
-
-## Sponsor
-
-Sponsors can:
-
-* Register and verify accounts
-* Create bursary programs
-* Define eligibility criteria
-* Review student applications
-* Approve or reject applications
-* Monitor impact metrics
-* View funded students
-
-Examples:
-
-* NGOs
-* Alumni groups
-* Companies
-* Government agencies
-* Individual donors
-* Religious organizations
+init.sql                       # Full database schema + seed data
+```
 
 ---
 
-## School
+## Architecture Pattern
 
-Schools can:
+Every request follows this strict chain:
 
-* Register institutions
-* Verify student enrollment
-* Update fee balances
-* Confirm academic records
-* Validate student information
-* Monitor sponsored students
+```
+Route → Middleware → Controller → Service → Repository → Database
+```
 
----
-
-## Administrator
-
-Administrators manage:
-
-* Users
-* Schools
-* Sponsors
-* Applications
-* System settings
-* Reports
-* Fraud prevention
-* Platform moderation
+- **Routes** — define endpoints, attach middleware and rate limiters
+- **Middleware** — authentication, authorization, input validation
+- **Controllers** — read req, call service, send response. No logic.
+- **Services** — all business rules live here. No DB calls.
+- **Repositories** — all raw SQL lives here. No business logic.
 
 ---
 
-# System Modules
+## Database Schema
 
-## Authentication Module
+### Tables
 
-Handles:
+| Table | Purpose |
+|---|---|
+| `users` | Core auth record for every actor |
+| `students` | Student profile linked to a user |
+| `schools` | Reference list of institutions (admin-managed) |
+| `bursaries` | Funding programs created by sponsors |
+| `applications` | Student applications to bursaries |
+| `payment_records` | Audit log of sponsor payments to school paybills |
+| `refresh_tokens` | Active refresh tokens (supports multiple devices) |
+| `password_resets` | Single-use password reset tokens |
 
-* Registration
-* Login
-* Logout
-* JWT Authentication
-* Refresh Tokens
-* Password Reset
-* Email Verification
-* Account Locking
-* Role-Based Access Control
+### Student Verification Status
 
-Roles:
+| Status | Meaning |
+|---|---|
+| `pending` | Profile submitted, awaiting admin review |
+| `verified` | Admin has confirmed enrollment and documents |
+| `rejected` | Admin rejected — reason stored in `admin_note` |
 
-* Student
-* Sponsor
-* School
-* Admin
+### Application Lifecycle
 
----
+```
+pending → under_review → approved → funded
+                       → rejected
+```
 
-## Student Management Module
+### Payment Flow
 
-Stores:
-
-* Personal information
-* Admission details
-* Academic level
-* School information
-* Fee balance
-* Application history
-* Verification status
+EduBridge does **not** hold funds. Sponsors pay directly to the school's M-Pesa paybill. EduBridge records the transaction and the school confirms receipt. Application moves to `funded` after confirmation.
 
 ---
 
-## School Management Module
+## Environment Variables
 
-Stores:
+Create a `.env` file in the project root:
 
-* School information
-* Paybill number
-* Contact details
-* Verification status
-* Student records
+```env
+# Server
+PORT=3000
+NODE_ENV=development
 
----
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/edubridge
 
-## Sponsor Management Module
+# JWT
+JWT_SECRET=your_jwt_secret_here
+JWT_EXPIRES_IN=15m
+REFRESH_TOKEN_SECRET=your_refresh_secret_here
+REFRESH_TOKEN_EXPIRES_IN=7d
 
-Stores:
+# Account Lockout
+MAX_LOGIN_ATTEMPTS=5
+LOCK_TIME_MINUTES=15
 
-* Sponsor profile
-* Organization details
-* Funding programs
-* Funding history
-* Impact analytics
-
----
-
-## Bursary Management Module
-
-Sponsors can create:
-
-* Bursary title
-* Description
-* Eligibility criteria
-* Funding amount
-* Application deadline
-
-Students can:
-
-* Browse bursaries
-* Apply
-* Upload required documents
+# Email (Nodemailer)
+MAIL_HOST=smtp.your-provider.com
+MAIL_PORT=587
+MAIL_USER=your@email.com
+MAIL_PASS=your_email_password
+MAIL_FROM=EduBridge <no-reply@edubridge.com>
+```
 
 ---
 
-## Application Management Module
+## Setup
 
-Application lifecycle:
+```bash
+# 1. Clone and install
+git clone https://github.com/your-repo/edubridge-backend.git
+cd edubridge-backend
+npm install
 
-Pending
-→ Under Review
-→ Approved
-→ Funded
+# 2. Create environment file
+cp .env.example .env
+# Fill in your values
 
-or
+# 3. Set up database
+psql -U postgres -c "CREATE DATABASE edubridge;"
+psql -U postgres -d edubridge -f init.sql
 
-Pending
-→ Rejected
+# 4. Create upload directory
+mkdir -p uploads/documents
 
-Every application maintains a full audit trail.
-
----
-
-## Fee Debt Tracking Module
-
-Tracks:
-
-* Total fee balance
-* Amount funded
-* Remaining balance
-* Payment history
-
-This helps sponsors understand the exact financial needs of each student.
+# 5. Start server
+npm run dev
+```
 
 ---
 
-## Notification Module
+## API Reference
 
-Notifications via:
+### Auth Routes — `/api/auth`
 
-* Email
-* In-app alerts
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/register` | Public | Register a new student or sponsor |
+| GET | `/verify-email?token=` | Public | Verify email address |
+| POST | `/resend-verification` | Public | Resend verification email |
+| POST | `/login` | Public | Login and receive tokens |
+| POST | `/refresh` | Public | Get new access token via cookie |
+| POST | `/logout` | Required | Invalidate refresh token |
+| POST | `/forgot-password` | Public | Send password reset email |
+| POST | `/reset-password` | Public | Reset password with token |
+| GET | `/profile` | Required | Get own user profile |
+| PATCH | `/change-password` | Required | Change password while logged in |
 
-Events:
+### Student Routes — `/api/students`
 
-* Registration
-* Verification
-* Application submission
-* Approval
-* Rejection
-* Funding completion
-
----
-
-## Reporting & Analytics Module
-
-Provides:
-
-### For Admins
-
-* Total students
-* Total sponsors
-* Total schools
-* Total applications
-* Total funds distributed
-
-### For Sponsors
-
-* Students funded
-* Money distributed
-* Success stories
-* Funding impact
-
-### For Schools
-
-* Students assisted
-* Outstanding fee balances
-* Funding received
+| Method | Endpoint | Auth | Role | Description |
+|---|---|---|---|---|
+| GET | `/profile` | Required | student | Get own full profile |
+| PATCH | `/profile` | Required | student | Update own profile |
+| POST | `/document` | Required | student | Upload fee statement |
+| GET | `/` | Required | admin | List all students (optional `?status=`) |
+| GET | `/:student_id` | Required | admin | Get one student by ID |
+| PATCH | `/:student_id/status` | Required | admin | Verify or reject a student |
 
 ---
 
-# Suggested Technology Stack
+## Authentication
 
-## Backend
+All protected routes require a Bearer token in the Authorization header:
 
-* Node.js
-* Express.js
-* PostgreSQL
-* JWT Authentication
-* bcrypt
-* Nodemailer
+```
+Authorization: Bearer <access_token>
+```
 
-Architecture:
-
-Controller
-→ Service
-→ Repository
-→ Database
+Access tokens expire in **15 minutes**. Use `POST /api/auth/refresh` to get a new one. The refresh token is stored in an `httpOnly` cookie automatically.
 
 ---
 
-## Frontend
+## Rate Limiting
 
-* React
-* Vite
-* React Router
-* Axios
-* Context API
-
----
-
-## Database
-
-PostgreSQL
-
-Main tables:
-
-* users
-* students
-* sponsors
-* schools
-* bursaries
-* applications
-* refresh_tokens
-* password_resets
-* notifications
+| Endpoint | Limit |
+|---|---|
+| `/login` | 10 requests per 15 minutes per IP |
+| `/register` | 5 requests per hour per IP |
+| `/forgot-password` | 3 requests per hour per IP |
+| `/resend-verification` | 3 requests per hour per IP |
 
 ---
 
-# Security Features
+## Seed Accounts
 
-* Password hashing with bcrypt
-* JWT access tokens
-* Refresh token rotation
-* Email verification
-* Password reset tokens
-* Account lockout after failed login attempts
-* Role-based authorization
-* Secure API endpoints
-* Input validation
+All seed accounts use the password: `Test1234!`
+
+| Email | Role | Notes |
+|---|---|---|
+| `admin@test.com` | admin | Full platform access |
+| `sponsor@test.com` | sponsor | Can create bursaries |
+| `student@test.com` | student | Verified, has a profile |
 
 ---
 
-# Long-Term Vision
+## Testing with Postman
 
-EduBridge aims to become a trusted educational funding platform that reduces student dropouts by making financial assistance more accessible, transparent, and accountable.
+### Full Student Flow
 
-The goal is to ensure that no student misses educational opportunities because they could not find or access available financial support.
+**1. Register**
+```
+POST /api/auth/register
+{
+  "full_name": "John Kamau",
+  "email": "john.kamau@test.com",
+  "password": "Test1234!",
+  "role": "student",
+  "phone": "254712345678"
+}
+```
 
-EduBridge is not simply a bursary application system—it is a complete educational funding ecosystem connecting students, schools, sponsors, and administrators through one transparent platform.
+**2. Get verification token** (development only)
+```sql
+SELECT email_verify_token FROM users WHERE email = 'john.kamau@test.com';
+```
+
+**3. Verify email**
+```
+GET /api/auth/verify-email?token=<token>
+```
+
+**4. Login**
+```
+POST /api/auth/login
+{
+  "email": "john.kamau@test.com",
+  "password": "Test1234!"
+}
+```
+Copy the `accessToken` from the response.
+
+**5. Update profile**
+```
+PATCH /api/students/profile
+Authorization: Bearer <accessToken>
+{
+  "school_id": 1,
+  "admission_no": "MSN/002/2024",
+  "course": "Bachelor of Commerce",
+  "year_of_study": 2,
+  "fee_balance": 38000,
+  "story": "Second year student. Father lost his job last year."
+}
+```
+
+**6. Admin verifies student**
+```
+PATCH /api/students/1/status
+Authorization: Bearer <adminToken>
+{
+  "status": "verified",
+  "admin_note": "Documents confirmed."
+}
+```
+
+---
+
+## What Is Not Built Yet
+
+The following are designed and documented but not yet implemented:
+
+- Sponsor role (register, create bursaries, log payments)
+- Bursary browsing and student application flow
+- Admin application review (approve / reject)
+- Email notifications on application status changes
+- School verification flow and timeout policy
+- Scheduled cleanup of unverified ghost accounts
+- Production file storage (S3 or Cloudinary — currently local disk)
+- Analytics and reporting module
+
+---
+
+## Technical Debt Logged
+
+- Unverified accounts older than 7 days accumulate as ghost rows in the `students` table. A scheduled cleanup job is needed.
+- `doc_url` is a single field. Will be migrated to a `student_documents` table when per-bursary document requirements are introduced.
+- File uploads are stored on local disk. Must be replaced with cloud storage before any production deployment.
+- `eligibility_criteria` on bursaries is free text. Will become structured JSON for auto-matching in a later phase.
