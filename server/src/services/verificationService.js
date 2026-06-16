@@ -54,13 +54,8 @@ const register = async ({ full_name, email, password, role, phone, organization_
     });
   }
 
-  // DEV ONLY: log token to console so you can verify without email setup
-  /*
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[DEV] Email verify token for ${user.email}: ${verifyToken}`);
-  }
-    */
-   
+ 
+
   console.log(`[DEV] Email verify token for ${user.email}: ${verifyToken}`);
 
   // Email failure does not block registration —
