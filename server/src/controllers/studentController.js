@@ -1,16 +1,7 @@
 const { validationResult } = require('express-validator');
 const studentService = require('../services/student/studentService');
 
-/*
-  STUDENT CONTROLLER
-  ──────────────────
-  Responsibilities:
-  1. Read from req (body, params, query, file)
-  2. Call studentService
-  3. Send response
 
-  No business logic. No DB calls. No validation rules.
-*/
 
 // ── Validate helper ───────────────────────────────────────────
 const validate = (req, res) => {

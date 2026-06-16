@@ -10,6 +10,7 @@ DROP TABLE IF EXISTS bursaries         CASCADE;
 DROP TABLE IF EXISTS refresh_tokens    CASCADE;
 DROP TABLE IF EXISTS password_resets   CASCADE;
 DROP TABLE IF EXISTS students          CASCADE;
+DROP TABLE IF EXISTS sponsors          CASCADE;
 DROP TABLE IF EXISTS schools           CASCADE;
 DROP TABLE IF EXISTS users             CASCADE;
 
@@ -71,13 +72,14 @@ CREATE TABLE schools (
   paybill_number VARCHAR(20)  NOT NULL,
   account_format VARCHAR(100),          -- e.g. "ADM{admission_no}"
   county         VARCHAR(100),
+  is_active      BOOLEAN      NOT NULL DEFAULT true,  -- soft delete
   admin_id       INTEGER REFERENCES users(user_id) ON DELETE SET NULL,
-  created_at     TIMESTAMP NOT NULL DEFAULT NOW()
+  created_at     TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- ── STUDENTS ─────────────────────────────────────────────────
--- One row per student user. Created after user registers
--- and completes their profile.
+-- One row per student user. Created immediately on registration.
 -- status tracks admin verification of the student profile.
 -- doc_url: single fee statement upload for MVP.
 --   (Will be migrated to student_documents table in a later phase
@@ -100,15 +102,47 @@ CREATE TABLE students (
   updated_at    TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
+-- ── SPONSORS ─────────────────────────────────────────────────
+-- One row per sponsor user. Created immediately on registration.
+-- Two-gate approval:
+--   Gate 1 — email verification (users.is_email_verified = true)
+--   Gate 2 — admin approval    (sponsors.status = 'verified')
+-- A sponsor must pass BOTH gates before creating bursaries.
+-- This prevents fake organizations from posting fraudulent bursaries.
+--
+-- status lifecycle:
+--   pending  → verified  (admin approves)
+--   pending  → rejected  (admin rejects — reason in admin_note)
+--   verified → rejected  (admin can revoke — e.g. fraud discovered)
+CREATE TABLE sponsors (
+  sponsor_id        SERIAL PRIMARY KEY,
+  user_id           INTEGER UNIQUE NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  organization_name VARCHAR(200)  NOT NULL,
+  organization_type VARCHAR(30)   NOT NULL
+                      CHECK (organization_type IN (
+                        'ngo', 'company', 'individual',
+                        'government', 'religious', 'alumni'
+                      )),
+  website           VARCHAR(500),
+  description       TEXT,                  -- what the organization does
+  status            VARCHAR(20)  NOT NULL DEFAULT 'pending'
+                      CHECK (status IN ('pending', 'verified', 'rejected')),
+  admin_note        TEXT,                  -- reason for rejection or notes
+  created_at        TIMESTAMP    NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
 -- ── BURSARIES ────────────────────────────────────────────────
--- Created by sponsors. Students apply to these.
+-- Created by verified sponsors only (enforced in service layer).
 -- eligibility_criteria: free text for MVP.
 --   (Will become structured JSON in a later phase for auto-matching.)
 -- is_active: sponsor can close a bursary early.
 -- slots: NULL means unlimited applicants.
+-- sponsor_id references sponsors.sponsor_id (not users.user_id)
+-- so the FK is to the sponsor profile, not just the user.
 CREATE TABLE bursaries (
   bursary_id            SERIAL PRIMARY KEY,
-  sponsor_id            INTEGER        NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  sponsor_id            INTEGER        NOT NULL REFERENCES sponsors(sponsor_id) ON DELETE CASCADE,
   title                 VARCHAR(200)   NOT NULL,
   description           TEXT,
   eligibility_criteria  TEXT,
@@ -150,12 +184,12 @@ CREATE TABLE applications (
 -- Created when a sponsor logs a payment for an approved application.
 -- EduBridge does NOT hold funds. Sponsor pays to school paybill directly.
 -- This table is the transparency and audit layer.
--- school_confirmed: set to true when admin or school acknowledges receipt.
+-- school_confirmed: set to true when admin acknowledges receipt.
 -- application status moves to 'funded' after school_confirmed = true.
 CREATE TABLE payment_records (
   payment_id        SERIAL PRIMARY KEY,
   application_id    INTEGER        NOT NULL REFERENCES applications(application_id) ON DELETE CASCADE,
-  sponsor_id        INTEGER        NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  sponsor_id        INTEGER        NOT NULL REFERENCES sponsors(sponsor_id) ON DELETE CASCADE,
   student_id        INTEGER        NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
   school_id         INTEGER        REFERENCES schools(school_id) ON DELETE SET NULL,
   amount            NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
@@ -178,6 +212,8 @@ CREATE INDEX idx_password_resets_token    ON password_resets(token);
 CREATE INDEX idx_students_status          ON students(status);
 CREATE INDEX idx_students_user_id         ON students(user_id);
 CREATE INDEX idx_students_school_id       ON students(school_id);
+CREATE INDEX idx_sponsors_user_id         ON sponsors(user_id);
+CREATE INDEX idx_sponsors_status          ON sponsors(status);
 CREATE INDEX idx_bursaries_sponsor_id     ON bursaries(sponsor_id);
 CREATE INDEX idx_bursaries_deadline       ON bursaries(deadline);
 CREATE INDEX idx_bursaries_is_active      ON bursaries(is_active);
@@ -194,33 +230,16 @@ CREATE INDEX idx_payment_records_student  ON payment_records(student_id);
 --  Hash: bcrypt, cost 10
 -- ============================================================
 
+-- Admin is the only seeded user.
+-- Sponsors and students are created through registration.
 INSERT INTO users (full_name, email, password, role, phone, is_email_verified) VALUES
-  ('Admin User',      'admin@test.com',   '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin',   '254700000001', true),
-  ('James Sponsor',   'sponsor@test.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'sponsor', '254700000002', true),
-  ('Mary Student',    'student@test.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student', '254711000003', true);
+  ('Admin User', 'admin@edubridge.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', '254700000001', true);
 
+-- Schools are managed by admin only.
+-- Students select from this list when completing their profile.
 INSERT INTO schools (name, paybill_number, account_format, county, admin_id) VALUES
-  ('Maseno University', '400200', 'MSN{admission_no}', 'Kisumu', 1);
-
-INSERT INTO students (user_id, school_id, admission_no, course, year_of_study, fee_balance, story, status) VALUES
-  (3, 1, 'MSN/001/2024', 'Bachelor of Science in Computer Science', 2, 45000.00,
-   'Second year CS student at Maseno University. My mother is a small-scale farmer and cannot afford my fees.',
-   'verified');
-
-INSERT INTO bursaries (sponsor_id, title, description, eligibility_criteria, amount, slots, deadline, is_active) VALUES
-  (2,
-   'James Sponsor STEM Bursary 2024',
-   'Supporting STEM students in public universities who demonstrate financial need.',
-   'Must be enrolled in a STEM course. Minimum year 2. Fee balance above KES 20,000.',
-   15000.00,
-   10,
-   '2024-12-31',
-   true);
-
-INSERT INTO applications (student_id, bursary_id, motivation_letter, status) VALUES
-  (1, 1,
-   'I am a second year Computer Science student struggling to clear my fee balance. This bursary would allow me to sit my exams and continue my studies.',
-   'approved');
-
-INSERT INTO payment_records (application_id, sponsor_id, student_id, school_id, amount, paybill_number, payment_reference, payment_date, school_confirmed, confirmed_by, confirmed_at) VALUES
-  (1, 2, 1, 1, 15000.00, '400200', 'QHX7Y3K9PL', CURRENT_DATE, true, 1, NOW());
+  ('Maseno University',     '400200', 'MSN{admission_no}', 'Kisumu',       1),
+  ('University of Nairobi', '522500', 'UON{admission_no}', 'Nairobi',      1),
+  ('Kenyatta University',   '200999', 'KU{admission_no}',  'Nairobi',      1),
+  ('Moi University',        '303030', 'MU{admission_no}',  'Uasin Gishu',  1),
+  ('Strathmore University', '606060', 'STR{admission_no}', 'Nairobi',      1);

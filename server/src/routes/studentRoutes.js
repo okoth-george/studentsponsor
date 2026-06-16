@@ -51,21 +51,6 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
-/*
-  ROUTE STRUCTURE
-  ───────────────
-  Student routes  → require authenticate + role='student'
-  Admin routes    → require authenticate + role='admin'
-
-  Middleware order matters:
-  authenticate first (who are you?) → authorize next (can you do this?)
-*/
-
-// ── STUDENT: OWN PROFILE ──────────────────────────────────────
-
-// GET  /api/students/profile      → view own profile
-// PATCH /api/students/profile     → update own profile
-// POST /api/students/document     → upload fee statement
 
 router.get(
   '/profile',
@@ -90,11 +75,6 @@ router.post(
   uploadDocument
 );
 
-// ── ADMIN: STUDENT MANAGEMENT ─────────────────────────────────
-
-// GET   /api/students              → list all students (optional ?status=pending)
-// GET   /api/students/:student_id  → view one student
-// PATCH /api/students/:student_id/status → verify or reject
 
 router.get(
   '/',

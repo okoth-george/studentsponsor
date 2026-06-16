@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const userRepository = require('../repositories/userRepository');
 const studentRepository = require('../repositories/studentRepository'); 
+const sponsorRepository = require('../repositories/sponsorRepository');
 require('dotenv').config();
 
 const {
@@ -68,7 +69,11 @@ const login = async (email, password) => {
     ? await studentRepository.findStudentSummary(user.user_id)
     : null;
 
-  return { accessToken, refreshToken, user: sanitizeUser(user), studentProfile };
+  const sponsorProfile = user.role === 'sponsor'
+    ? await sponsorRepository.findSponsorSummary(user.user_id)
+    : null;
+
+  return { accessToken, refreshToken, user: sanitizeUser(user), studentProfile, sponsorProfile };
 };
 
 // ── REFRESH TOKEN ─────────────────────────────────────────────
