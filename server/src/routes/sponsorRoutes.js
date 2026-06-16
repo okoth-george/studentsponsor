@@ -10,7 +10,7 @@ const {
 const { authenticate, authorize } = require('../middleware/auth');
 const {
   validateUpdateSponsorProfile,
-} = require('../middleware/validators');
+} = require('../middleware/sponsorValidator');
 
 
 router.get(
