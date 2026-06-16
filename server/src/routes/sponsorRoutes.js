@@ -2,9 +2,9 @@ const express = require('express');
 const router  = express.Router();
 
 const {
-  getMyProfile,
-  updateMyProfile,
-  getMyStats,
+  getsponsorProfile,
+  updatesponsorProfile,
+  getsponsorStats,
 } = require('../controllers/sponsorController');
 
 const { authenticate, authorize } = require('../middleware/auth');
@@ -17,7 +17,7 @@ router.get(
   '/profile',
   authenticate,
   authorize('sponsor'),
-  getMyProfile
+  getsponsorProfile
 );
 
 router.patch(
@@ -25,14 +25,14 @@ router.patch(
   authenticate,
   authorize('sponsor'),
   validateUpdateSponsorProfile,
-  updateMyProfile
+  updatesponsorProfile
 );
 
 router.get(
   '/stats',
   authenticate,
   authorize('sponsor'),
-  getMyStats
+  getsponsorStats
 );
 
 module.exports = router;

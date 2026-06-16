@@ -1,4 +1,4 @@
-const {body, param, query} = require('express-validator');
+const {body} = require('express-validator');
 
  //Never trust user input 
 const validateRegisterSponsor = [
