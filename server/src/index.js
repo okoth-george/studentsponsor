@@ -43,8 +43,10 @@ app.use('/uploads', express.static('uploads'));
 const authRoutes = require('./routes/auth');
 
 const studentRoutes = require('./routes/studentRoutes');
+const sponsorRoutes = require('./routes/sponsorRoutes');
 
 app.use('/api/students', studentRoutes);
+app.use('/api/sponsors', sponsorRoutes);
 app.use('/api/auth', authRoutes);
 
 // ─────────────────────────────────────────────
