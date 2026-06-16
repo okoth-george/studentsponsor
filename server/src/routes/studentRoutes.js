@@ -16,7 +16,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 const {
   validateUpdateStudentProfile,
   validateUpdateStudentStatus,
-} = require('../middleware/validators');
+} = require('../middleware/studentValidator');
 
 /*
   MULTER CONFIG — MVP local file storage
@@ -58,6 +58,8 @@ router.get(
   authorize('student'),
   getMyProfile
 );
+
+
 
 router.patch(
   '/profile',
