@@ -78,26 +78,5 @@ router.post(
 );
 
 
-router.get(
-  '/',
-  authenticate,
-  authorize('admin'),
-  getAllStudents
-);
-
-router.get(
-  '/:student_id',
-  authenticate,
-  authorize('admin'),
-  getStudentById
-);
-
-router.patch(
-  '/:student_id/status',
-  authenticate,
-  authorize('admin'),
-  validateUpdateStudentStatus,
-  updateStudentStatus
-);
 
 module.exports = router;

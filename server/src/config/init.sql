@@ -230,10 +230,6 @@ CREATE INDEX idx_payment_records_student  ON payment_records(student_id);
 --  Hash: bcrypt, cost 10
 -- ============================================================
 
--- Admin is the only seeded user.
--- Sponsors and students are created through registration.
-INSERT INTO users (full_name, email, password, role, phone, is_email_verified) VALUES
-  ('Admin User', 'admin@edubridge.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', '254700000001', true);
 
 -- Schools are managed by admin only.
 -- Students select from this list when completing their profile.
