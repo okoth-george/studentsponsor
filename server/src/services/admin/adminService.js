@@ -1,8 +1,22 @@
-const studentRepository = require('../repositories/studentRepository');
-const sponsorRepository = require('../repositories/sponsorRepository');
-const { fail } = require('./utils/authUtils');
+const bcrypt = require('bcryptjs');
+const studentRepository = require('../../repositories/studentRepository');
+const sponsorRepository = require('../../repositories/sponsorRepository');
+const userRepository = require('../../repositories/userRepository');
+const { sanitizeUser, fail } = require('../utils/authUtils');
 
+/*
+  ADMIN SERVICE
+  ─────────────
+  Admin has no profile table of its own — it operates directly
+  on studentRepository and sponsorRepository.
 
+  This file owns ALL business rules for admin actions on
+  students and sponsors. Student/sponsor-facing services
+  (studentService.js, sponsorService.js) do NOT expose
+  admin actions — that separation is intentional.
+
+  Controller → Service → Repository → DB
+*/
 
 const STUDENT_STATUSES = ['pending', 'verified', 'rejected'];
 const SPONSOR_STATUSES = ['pending', 'verified', 'rejected'];
@@ -105,7 +119,69 @@ const updateSponsorStatus = async (sponsor_id, status, admin_note) => {
   return sponsorRepository.updateSponsorStatus(sponsor_id, status, admin_note || null);
 };
 
-// ── DASHBOARD SUMMARY ───────────────────────────────────────
+// ── CREATE ADMIN ──────────────────────────────────────────────
+
+/**
+ * An existing admin creates a new admin account directly.
+ * Bypasses the public registration flow entirely:
+ * - No email verification token, no "check your email" step
+ * - is_email_verified = true immediately
+ * - New admin can log in right away with the password set here
+ *
+ * Business rules:
+ * 1. full_name, email, password are required
+ * 2. Email must be unique across the whole users table
+ * 3. Password must meet the same strength rules as public
+ *    registration (checked here since this bypasses
+ *    validateRegister middleware)
+ * 4. New admin should change their password after first login —
+ *    not enforced by the system, just a recommendation surfaced
+ *    in the response message
+ */
+const createAdmin = async ({ full_name, email, password, phone }) => {
+  if (!full_name?.trim()) throw fail('Full name is required.', 400);
+  if (!email?.trim())     throw fail('Email is required.', 400);
+  if (!password)          throw fail('Password is required.', 400);
+
+  const strongPassword =
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[a-z]/.test(password) &&
+    /[0-9]/.test(password) &&
+    /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+  if (!strongPassword) {
+    throw fail(
+      'Password must be at least 8 characters and include an uppercase letter, lowercase letter, number, and special character.',
+      400
+    );
+  }
+
+  const existing = await userRepository.findByEmail(email.toLowerCase());
+  if (existing) throw fail('An account with this email already exists.', 409);
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+
+  // Create directly as a fully verified admin —
+  // no verifyToken/verifyExpires needed since this skips
+  // the public verification flow entirely.
+  const newAdmin = await userRepository.create({
+    full_name,
+    email: email.toLowerCase(),
+    password: hashedPassword,
+    role: 'admin',
+    phone,
+    verifyToken: null,
+    verifyExpires: null,
+  });
+
+  // Mark verified immediately since admin vouched for this account
+  await userRepository.markEmailVerified(newAdmin.user_id);
+
+  return sanitizeUser(newAdmin);
+};
+
+
 
 /**
  * Returns counts admin needs at a glance:
@@ -130,6 +206,9 @@ const getDashboardSummary = async () => {
 };
 
 module.exports = {
+  // Admin management
+  createAdmin,
+
   // Students
   getAllStudents,
   getStudentById,
