@@ -1,5 +1,5 @@
 const { validationResult } = require('express-validator');
-const adminService = require('../services/adminService');
+const adminService = require('../services/admin/adminService');
 
 /*
   ADMIN CONTROLLER
@@ -24,6 +24,22 @@ const validate = (req, res) => {
     return false;
   }
   return true;
+};
+
+// ── CREATE ADMIN ──────────────────────────────────────────────
+// POST /api/admin/admins
+const createAdmin = async (req, res) => {
+  if (!validate(req, res)) return;
+  try {
+    const newAdmin = await adminService.createAdmin(req.body);
+    res.status(201).json({
+      success: true,
+      message: 'Admin account created. Recommend they change their password after first login.',
+      admin: newAdmin,
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ success: false, message: err.message });
+  }
 };
 
 // ── DASHBOARD ─────────────────────────────────────────────────
@@ -124,6 +140,7 @@ const updateSponsorStatus = async (req, res) => {
 };
 
 module.exports = {
+  createAdmin,
   getDashboardSummary,
   getAllStudents,
   getStudentById,
