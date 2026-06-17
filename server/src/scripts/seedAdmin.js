@@ -1,4 +1,4 @@
-/* 
+/*
   SEED ADMIN SCRIPT
   ─────────────────
   Run this to insert (or update) an admin account with a
@@ -121,45 +121,6 @@ const seedAdmin = async () => {
     // never imported into the running Express app.
     // If you ever import this as a module elsewhere, remove this line —
     // it would kill the pool for the entire app.
-    await pool.end();
-  }
-};
-
-seedAdmin();
-const seedAdmin = async () => {
-  try {
-    const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12);
-
-    const existing = await pool.query(
-      'SELECT user_id FROM users WHERE email = $1',
-      [ADMIN_EMAIL]
-    );
-
-    if (existing.rows.length > 0) {
-      // Admin already exists — update password instead of duplicating
-      await pool.query(
-        `UPDATE users SET
-           password = $1,
-           updated_at = NOW()
-         WHERE email = $2`,
-        [hashedPassword, ADMIN_EMAIL]
-      );
-      console.log(`✔ Admin password updated for ${ADMIN_EMAIL}`);
-    } else {
-      // Create fresh admin account
-      await pool.query(
-        `INSERT INTO users
-           (full_name, email, password, role, phone, is_email_verified)
-         VALUES ($1, $2, $3, 'admin', $4, true)`,
-        [ADMIN_NAME, ADMIN_EMAIL, hashedPassword, ADMIN_PHONE]
-      );
-      console.log(`✔ Admin account created: ${ADMIN_EMAIL}`);
-    }
-
-    console.log(`  Login with: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
-  } catch (err) {
-    console.error('✘ Seeding admin failed:', err.message);
-  } finally {
     await pool.end();
   }
 };
