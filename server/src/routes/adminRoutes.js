@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 
 const {
+  createAdmin,
   getDashboardSummary,
   getAllStudents,
   getStudentById,
@@ -13,10 +14,13 @@ const {
 
 const { authenticate, authorize } = require('../middleware/auth');
 
-const { validateUpdateSponsorStatus } = require('../middleware/sponsorValidator');
+const {
+  validateCreateAdmin,
+} = require('../middleware/adminValidator');
 
+const {validateUpdateSponsorStatus} =require('../middleware/sponsorValidator');
+const {validateUpdateStudentStatus} =require('../middleware/studentValidator');
 
-const { validateUpdateStudentStatus } = require('../middleware/studentValidator');
 
 /*
   ADMIN ROUTES
@@ -32,6 +36,10 @@ const { validateUpdateStudentStatus } = require('../middleware/studentValidator'
 */
 
 router.use(authenticate, authorize('admin'));
+
+// ── ADMIN MANAGEMENT ──────────────────────────────────────────
+// POST /api/admin/admins → existing admin creates a new admin
+router.post('/admins', validateCreateAdmin, createAdmin);
 
 // ── DASHBOARD ─────────────────────────────────────────────────
 // GET /api/admin/dashboard → counts: total/pending students & sponsors
