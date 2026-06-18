@@ -1,4 +1,6 @@
 const { body } = require('express-validator');
+const { passwordRules } = require('./validators');
+
 
 const validateCreateAdmin = [
   body('full_name')
@@ -18,8 +20,5 @@ const validateCreateAdmin = [
 ];
 
 module.exports = {
-  validateCreateAdmin
+  validateCreateAdmin,
 };
-
-
- 

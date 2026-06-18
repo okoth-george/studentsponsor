@@ -11,6 +11,9 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "${DB_EXTERNAL_PORT}:5432"
+    env_file:
+      - ./server/.env  
+
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./server/src/config/init.sql:/docker-entrypoint-initdb.d/init.sql

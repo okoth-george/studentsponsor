@@ -1,26 +1,4 @@
-/*
-  SEED ADMIN SCRIPT
-  ─────────────────
-  Run this to insert (or update) an admin account with a
-  correctly hashed password.
 
-  Usage:
-    node scripts/seedAdmin.js
-    → uses .env defaults or built-in fallback (development only)
-
-    node scripts/seedAdmin.js "Jane Admin" jane@edubridge.com Test1234! 254711111111
-    → creates a SECOND, THIRD, etc. admin with these exact values
-
-  Safe to run multiple times with different emails —
-  each unique email creates a new admin row.
-  Running with the same email again updates that admin's password.
-
-  PRODUCTION SAFETY:
-  In production, default fallback values are disabled.
-  You MUST pass explicit arguments or set SEED_ADMIN_* env vars —
-  the script refuses to silently create an admin with the
-  default "Test1234!" password against a live database.
-*/
 
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
@@ -116,11 +94,7 @@ const seedAdmin = async () => {
     console.error('✘ Seeding admin failed:', err.message);
     process.exitCode = 1;
   } finally {
-    // NOTE: pool.end() closes the shared DB connection pool.
-    // Safe here because this script is run standalone via CLI,
-    // never imported into the running Express app.
-    // If you ever import this as a module elsewhere, remove this line —
-    // it would kill the pool for the entire app.
+    
     await pool.end();
   }
 };

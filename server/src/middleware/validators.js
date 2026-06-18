@@ -11,8 +11,9 @@ const { body } = require('express-validator');
 */
 
 // ── SHARED RULES ──────────────────────────────────────────────
-
 // Password must be 8+ chars, have uppercase, lowercase, number, special char
+// EXPORTED — adminValidator.js and any other split validator file
+// imports this instead of duplicating the regex rules.
 const passwordRules = () =>
   body('password')
     .isLength({ min: 8 })
@@ -83,10 +84,12 @@ const validateChangePassword = [
 ];
 
 module.exports = {
+  // Shared helper — other validator files import this
+  passwordRules,
+
   // Auth
   validateRegister,
   validateLogin,
   validateResetPassword,
   validateChangePassword,
-
 };
