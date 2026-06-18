@@ -46,7 +46,7 @@ const studentRoutes = require('./routes/studentRoutes');
 const sponsorRoutes = require('./routes/sponsorRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 
-app.use('/api/admins', adminRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/sponsors', sponsorRoutes);
 app.use('/api/auth', authRoutes);
