@@ -1,16 +1,8 @@
 const { validationResult } = require('express-validator');
 const adminService = require('../services/admin/adminService');
+const bursaryService = require('../services/sponsor/bursaryService');
 
-/*
-  ADMIN CONTROLLER
-  ────────────────
-  Responsibilities:
-  1. Read from req (body, params, query)
-  2. Call adminService
-  3. Send response
 
-  No business logic. No DB calls. No validation rules.
-*/
 
 // ── Validate helper ───────────────────────────────────────────
 const validate = (req, res) => {
@@ -139,6 +131,36 @@ const updateSponsorStatus = async (req, res) => {
   }
 };
 
+
+// ── BURSARIES ─────────────────────────────────────────────────
+ 
+// GET /api/admin/bursaries?is_active=true
+const getAllBursariesForAdmin = async (req, res) => {
+  try {
+    const { is_active } = req.query;
+    const filter = is_active === undefined ? null : is_active === 'true';
+    const bursaries = await bursaryService.getAllBursariesForAdmin(filter);
+    res.status(200).json({ success: true, count: bursaries.length, bursaries });
+  } catch (err) {
+    res.status(err.status || 500).json({ success: false, message: err.message });
+  }
+};
+ 
+// PATCH /api/admin/bursaries/:bursary_id/deactivate
+const adminDeactivateBursary = async (req, res) => {
+  try {
+    const updated = await bursaryService.adminDeactivateBursary(req.params.bursary_id);
+    res.status(200).json({
+      success: true,
+      message: 'Bursary deactivated by admin.',
+      bursary: updated,
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ success: false, message: err.message });
+  }
+};
+ 
+
 module.exports = {
   createAdmin,
   getDashboardSummary,
@@ -148,4 +170,7 @@ module.exports = {
   getAllSponsors,
   getSponsorById,
   updateSponsorStatus,
+  getAllBursariesForAdmin,
+  adminDeactivateBursary,
+
 };
