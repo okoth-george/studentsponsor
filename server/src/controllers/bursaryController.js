@@ -1,5 +1,5 @@
 const { validationResult } = require('express-validator');
-const bursaryService = require('../services/bursaryService');
+const bursaryService = require('../services/sponsor/bursaryService');
 
 /*
   BURSARY CONTROLLER
