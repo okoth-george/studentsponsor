@@ -45,7 +45,9 @@ const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/studentRoutes');
 const sponsorRoutes = require('./routes/sponsorRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const bursaryRoutes = require('./routes/bursaryRoutes');
 
+app.use('/api/bursaries', bursaryRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/sponsors', sponsorRoutes);

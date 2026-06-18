@@ -10,6 +10,9 @@ const {
   getAllSponsors,
   getSponsorById,
   updateSponsorStatus,
+  getAllBursariesForAdmin,
+  adminDeactivateBursary,
+
 } = require('../controllers/adminController');
 
 const { authenticate, authorize } = require('../middleware/auth');
@@ -47,5 +50,13 @@ router.patch(
   validateUpdateSponsorStatus,
   updateSponsorStatus
 );
+
+
+// ── BURSARIES ─────────────────────────────────────────────────
+// GET   /api/admin/bursaries                          → list all (optional ?is_active=true)
+// PATCH /api/admin/bursaries/:bursary_id/deactivate    → moderation: force-close a bursary
+router.get('/bursaries', getAllBursariesForAdmin);
+router.patch('/bursaries/:bursary_id/deactivate', adminDeactivateBursary);
+ 
 
 module.exports = router;
