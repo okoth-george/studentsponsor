@@ -44,7 +44,8 @@ const findSponsorById = async (sponsor_id) => {
        u.full_name,
        u.email,
        u.phone,
-       u.is_active
+       u.is_active,
+       u.is_email_verified
      FROM sponsors sp
      JOIN users u ON sp.user_id = u.user_id
      WHERE sp.sponsor_id = $1`,

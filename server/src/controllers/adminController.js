@@ -2,7 +2,7 @@ const { validationResult } = require('express-validator');
 const adminService = require('../services/admin/adminService');
 const bursaryService = require('../services/sponsor/bursaryService');
 
-
+ 
 
 // ── Validate helper ───────────────────────────────────────────
 const validate = (req, res) => {
