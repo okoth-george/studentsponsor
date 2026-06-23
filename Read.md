@@ -1,322 +1,296 @@
-# EduBridge — Backend API
+# EduBridge Backend API
 
-A platform that connects financially needy students with bursary providers, sponsors, donors, NGOs, and government funding opportunities. EduBridge acts as the transparency and matching layer between students who need financial assistance and organizations willing to provide it.
+EduBridge is a backend platform built to connect students who are struggling with school fees to bursary providers, sponsors, NGOs, and government funding programs.
+
+The main idea behind this project is to make bursary allocation more transparent and easier to access. Instead of students struggling to find funding opportunities manually, EduBridge acts as the bridge between students and organizations willing to help.
+
+At the moment, the project is still in its MVP stage and currently focuses on the student side of the system.
 
 ---
 
-## Current Build Status
+## Current Progress
 
-**Phase:** MVP — Student Role (Backend)
-**Stack:** Node.js · Express.js · PostgreSQL · JWT
+This version is built with:
 
-What is built and working:
+* Node.js
+* Express.js
+* PostgreSQL
+* JWT Authentication
 
-- User registration with email verification
-- JWT authentication (access token + refresh token rotation)
-- Account lockout after failed login attempts
-- Password reset via email token
-- Student profile creation and update
-- Fee statement document upload
-- Admin student verification workflow
-- Role-based access control (student · sponsor · admin)
+So far, the backend supports:
+
+* User registration with email verification
+* Secure login with JWT access and refresh tokens
+* Refresh token rotation for better security
+* Account lockout after multiple failed login attempts
+* Password reset using email tokens
+* Student profile creation and updates
+* Uploading fee statement documents
+* Admin verification of student accounts
+* Role-based access control (student, sponsor, admin)
+
+The core authentication and student onboarding flow is fully working.
 
 ---
 
 ## Project Structure
 
-```
+The project follows a clean layered architecture to keep the code maintainable.
+
 src/
 ├── config/
-│   ├── db.js                  # PostgreSQL pool connection
-│   └── email.js               # Nodemailer transporter
-│
 ├── controllers/
-│   ├── authController.js      # Register, login, logout, password, profile
-│   └── studentController.js   # Student profile CRUD + admin status update
-│
 ├── middleware/
-│   ├── auth.js                # authenticate · authorize · optionalAuth
-│   └── validators.js          # express-validator rules for all routes
-│
 ├── repositories/
-│   ├── userRepository.js      # All raw SQL for users table
-│   └── studentRepository.js   # All raw SQL for students table
-│
 ├── routes/
-│   ├── authRoutes.js          # /api/auth/*
-│   └── studentRoutes.js       # /api/students/*
-│
 ├── services/
-│   ├── authService.js         # Login · refresh · logout
-│   ├── verificationService.js # Register · verify email · resend
-│   ├── passwordService.js     # Forgot password · reset · change
-│   ├── userService.js         # getProfile (shared across roles)
-│   ├── studentService.js      # Student business logic
-│   └── utils/
-│       └── authUtils.js       # Token generation · sanitizeUser · fail()
-│
-uploads/
-└── documents/                 # Fee statement uploads (local, MVP only)
+└── utils/
 
-init.sql                       # Full database schema + seed data
-```
+Uploads are stored locally for now under:
+
+uploads/documents/
+
+The database schema and seed data are inside:
+
+init.sql
 
 ---
 
-## Architecture Pattern
+## How the Architecture Works
 
-Every request follows this strict chain:
+Every request follows this flow:
 
-```
 Route → Middleware → Controller → Service → Repository → Database
-```
 
-- **Routes** — define endpoints, attach middleware and rate limiters
-- **Middleware** — authentication, authorization, input validation
-- **Controllers** — read req, call service, send response. No logic.
-- **Services** — all business rules live here. No DB calls.
-- **Repositories** — all raw SQL lives here. No business logic.
+Here’s how each layer works:
+
+* **Routes** handle endpoints and connect middleware.
+* **Middleware** handles authentication, authorization, and validation.
+* **Controllers** receive requests and send responses.
+* **Services** contain the business logic.
+* **Repositories** contain all raw SQL queries.
+
+I separated responsibilities this way to keep the system scalable and easy to debug.
 
 ---
 
-## Database Schema
+## Database Design
 
-### Tables
+The database currently has these main tables:
 
-| Table | Purpose |
-|---|---|
-| `users` | Core auth record for every actor |
-| `students` | Student profile linked to a user |
-| `schools` | Reference list of institutions (admin-managed) |
-| `bursaries` | Funding programs created by sponsors |
-| `applications` | Student applications to bursaries |
-| `payment_records` | Audit log of sponsor payments to school paybills |
-| `refresh_tokens` | Active refresh tokens (supports multiple devices) |
-| `password_resets` | Single-use password reset tokens |
+* **users** → stores authentication data for all roles
+* **students** → stores student-specific information
+* **schools** → stores institution reference data
+* **bursaries** → funding opportunities created by sponsors
+* **applications** → student applications to bursaries
+* **payment_records** → sponsor payment tracking
+* **refresh_tokens** → active login sessions
+* **password_resets** → temporary password reset tokens
 
 ### Student Verification Status
 
-| Status | Meaning |
-|---|---|
-| `pending` | Profile submitted, awaiting admin review |
-| `verified` | Admin has confirmed enrollment and documents |
-| `rejected` | Admin rejected — reason stored in `admin_note` |
+A student profile can be:
 
-### Application Lifecycle
+* **pending** → waiting for admin review
+* **verified** → approved by admin
+* **rejected** → declined with an admin note
 
-```
+### Application Status Flow
+
 pending → under_review → approved → funded
-                       → rejected
-```
-
-### Payment Flow
-
-EduBridge does **not** hold funds. Sponsors pay directly to the school's M-Pesa paybill. EduBridge records the transaction and the school confirms receipt. Application moves to `funded` after confirmation.
+pending → under_review → rejected
 
 ---
 
-## Environment Variables
+## Payment Model
 
-Create a `.env` file in the project root:
+EduBridge does not handle money directly.
 
-```env
-# Server
-PORT=3000
-NODE_ENV=development
+When a bursary is approved, sponsors pay directly to the school’s M-Pesa paybill. The platform only records the payment and tracks confirmation from the school.
 
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/edubridge
-
-# JWT
-JWT_SECRET=your_jwt_secret_here
-JWT_EXPIRES_IN=15m
-REFRESH_TOKEN_SECRET=your_refresh_secret_here
-REFRESH_TOKEN_EXPIRES_IN=7d
-
-# Account Lockout
-MAX_LOGIN_ATTEMPTS=5
-LOCK_TIME_MINUTES=15
-
-# Email (Nodemailer)
-MAIL_HOST=smtp.your-provider.com
-MAIL_PORT=587
-MAIL_USER=your@email.com
-MAIL_PASS=your_email_password
-MAIL_FROM=EduBridge <no-reply@edubridge.com>
-```
+This reduces financial risk and keeps the platform transparent.
 
 ---
 
-## Setup
+## Environment Setup
+
+Create a `.env` file in the root directory and add:
+
+* Database connection URL
+* JWT secrets
+* Email credentials
+* Lockout configurations
+
+This keeps sensitive configuration outside the codebase.
+
+---
+
+## Running the Project
+
+Clone the project:
 
 ```bash
-# 1. Clone and install
-git clone https://github.com/your-repo/edubridge-backend.git
+git clone <repo-url>
 cd edubridge-backend
 npm install
+```
 
-# 2. Create environment file
+Create your environment variables:
+
+```bash
 cp .env.example .env
-# Fill in your values
+```
 
-# 3. Set up database
+Create the database and load schema:
+
+```bash
 psql -U postgres -c "CREATE DATABASE edubridge;"
 psql -U postgres -d edubridge -f init.sql
+```
 
-# 4. Create upload directory
+Create upload directory:
+
+```bash
 mkdir -p uploads/documents
+```
 
-# 5. Start server
+Start the development server:
+
+```bash
 npm run dev
 ```
 
 ---
 
-## API Reference
+## Main API Routes
 
-### Auth Routes — `/api/auth`
+### Authentication Routes
 
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/register` | Public | Register a new student or sponsor |
-| GET | `/verify-email?token=` | Public | Verify email address |
-| POST | `/resend-verification` | Public | Resend verification email |
-| POST | `/login` | Public | Login and receive tokens |
-| POST | `/refresh` | Public | Get new access token via cookie |
-| POST | `/logout` | Required | Invalidate refresh token |
-| POST | `/forgot-password` | Public | Send password reset email |
-| POST | `/reset-password` | Public | Reset password with token |
-| GET | `/profile` | Required | Get own user profile |
-| PATCH | `/change-password` | Required | Change password while logged in |
+These handle:
 
-### Student Routes — `/api/students`
+* Registration
+* Email verification
+* Login
+* Logout
+* Password reset
+* Profile retrieval
+* Password change
 
-| Method | Endpoint | Auth | Role | Description |
-|---|---|---|---|---|
-| GET | `/profile` | Required | student | Get own full profile |
-| PATCH | `/profile` | Required | student | Update own profile |
-| POST | `/document` | Required | student | Upload fee statement |
-| GET | `/` | Required | admin | List all students (optional `?status=`) |
-| GET | `/:student_id` | Required | admin | Get one student by ID |
-| PATCH | `/:student_id/status` | Required | admin | Verify or reject a student |
+Base route:
+
+/api/auth
 
 ---
 
-## Authentication
+### Student Routes
 
-All protected routes require a Bearer token in the Authorization header:
+These handle:
 
-```
+* Getting student profile
+* Updating profile
+* Uploading fee statements
+* Admin verification
+* Listing students
+
+Base route:
+
+/api/students
+
+---
+
+## Authentication Flow
+
+Protected routes require:
+
 Authorization: Bearer <access_token>
-```
 
-Access tokens expire in **15 minutes**. Use `POST /api/auth/refresh` to get a new one. The refresh token is stored in an `httpOnly` cookie automatically.
+Access tokens expire after 15 minutes.
+
+Refresh tokens are stored in httpOnly cookies and used to generate new access tokens securely.
+
+This makes the authentication flow more secure while supporting long sessions.
 
 ---
 
 ## Rate Limiting
 
-| Endpoint | Limit |
-|---|---|
-| `/login` | 10 requests per 15 minutes per IP |
-| `/register` | 5 requests per hour per IP |
-| `/forgot-password` | 3 requests per hour per IP |
-| `/resend-verification` | 3 requests per hour per IP |
+To reduce abuse:
+
+* Login → 10 requests per 15 minutes
+* Register → 5 requests per hour
+* Forgot password → 3 requests per hour
+* Resend verification → 3 requests per hour
 
 ---
 
 ## Seed Accounts
 
-All seed accounts use the password: `Test1234!`
+For testing:
 
-| Email | Role | Notes |
-|---|---|---|
-| `admin@test.com` | admin | Full platform access |
-| `sponsor@test.com` | sponsor | Can create bursaries |
-| `student@test.com` | student | Verified, has a profile |
+Admin:
+[admin@test.com](mailto:admin@test.com)
 
----
+Sponsor:
+[sponsor@test.com](mailto:sponsor@test.com)
 
-## Testing with Postman
+Student:
+[student@test.com](mailto:student@test.com)
 
-### Full Student Flow
+Password for all:
 
-**1. Register**
-```
-POST /api/auth/register
-{
-  "full_name": "John Kamau",
-  "email": "john.kamau@test.com",
-  "password": "Test1234!",
-  "role": "student",
-  "phone": "254712345678"
-}
-```
-
-**2. Get verification token** (development only)
-```sql
-SELECT email_verify_token FROM users WHERE email = 'john.kamau@test.com';
-```
-
-**3. Verify email**
-```
-GET /api/auth/verify-email?token=<token>
-```
-
-**4. Login**
-```
-POST /api/auth/login
-{
-  "email": "john.kamau@test.com",
-  "password": "Test1234!"
-}
-```
-Copy the `accessToken` from the response.
-
-**5. Update profile**
-```
-PATCH /api/students/profile
-Authorization: Bearer <accessToken>
-{
-  "school_id": 1,
-  "admission_no": "MSN/002/2024",
-  "course": "Bachelor of Commerce",
-  "year_of_study": 2,
-  "fee_balance": 38000,
-  "story": "Second year student. Father lost his job last year."
-}
-```
-
-**6. Admin verifies student**
-```
-PATCH /api/students/1/status
-Authorization: Bearer <adminToken>
-{
-  "status": "verified",
-  "admin_note": "Documents confirmed."
-}
-```
+Test1234!
 
 ---
 
-## What Is Not Built Yet
+## Testing
 
-The following are designed and documented but not yet implemented:
+The API can be tested easily using Postman.
 
-- Sponsor role (register, create bursaries, log payments)
-- Bursary browsing and student application flow
-- Admin application review (approve / reject)
-- Email notifications on application status changes
-- School verification flow and timeout policy
-- Scheduled cleanup of unverified ghost accounts
-- Production file storage (S3 or Cloudinary — currently local disk)
-- Analytics and reporting module
+Recommended test flow:
+
+1. Register a new user
+2. Verify email
+3. Login
+4. Create student profile
+5. Upload fee statement
+6. Verify student as admin
+
+This covers the complete MVP student flow.
 
 ---
 
-## Technical Debt Logged
+## What’s Coming Next
 
-- Unverified accounts older than 7 days accumulate as ghost rows in the `students` table. A scheduled cleanup job is needed.
-- `doc_url` is a single field. Will be migrated to a `student_documents` table when per-bursary document requirements are introduced.
-- File uploads are stored on local disk. Must be replaced with cloud storage before any production deployment.
-- `eligibility_criteria` on bursaries is free text. Will become structured JSON for auto-matching in a later phase.
+Still in progress:
+
+* Sponsor dashboard and bursary creation
+* Student bursary applications
+* Application review by admins
+* Email notifications
+* School verification workflow
+* Scheduled cleanup jobs
+* Cloud file storage (S3/Cloudinary)
+* Analytics dashboard
+
+---
+
+## Technical Debt / Known Limitations
+
+There are a few things I still need to improve:
+
+* Unverified users can leave unused rows in the database
+* File uploads are still stored locally
+* Student documents are stored in a single field instead of a dedicated table
+* Bursary eligibility is currently plain text and will later be structured for smarter matching
+
+These are planned improvements as the project grows.
+
+---
+
+## Why I Built This
+
+Many students miss opportunities because bursary systems are often disorganized, slow, or not transparent enough.
+
+I built EduBridge to solve that problem by creating a centralized platform where students can discover funding opportunities and sponsors can support verified cases more efficiently.
+
+The long-term goal is to reduce school dropouts caused by financial challenges.

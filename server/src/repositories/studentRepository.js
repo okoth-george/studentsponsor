@@ -1,25 +1,6 @@
 const pool = require('../config/db');
 
-/*
-  STUDENT REPOSITORY
-  ──────────────────
-  The ONLY place in the codebase that writes raw SQL
-  for student-related operations.
 
-  Rules:
-  - No business logic — just data in, data out
-  - Every function takes plain values, returns plain objects
-  - Services never see pool.query directly
-  - Consistent with userRepository pattern
-*/
-
-// ── CREATE ────────────────────────────────────────────────────
-
-/**
- * Called immediately after a student user is registered.
- * Creates a blank student row linked to the user.
- * Profile fields are filled in a separate updateStudentProfile call.
- */
 const createStudentProfile = async (user_id) => {
   const result = await pool.query(
     `INSERT INTO students (user_id)
@@ -31,11 +12,8 @@ const createStudentProfile = async (user_id) => {
 };
 
 // ── FIND ──────────────────────────────────────────────────────
+//using user id because student_id is not known at login/registration time
 
-/**
- * Full student record joined with school info.
- * Used by the student viewing their own profile.
- */
 const findStudentByUserId = async (user_id) => {
   const result = await pool.query(
     `SELECT

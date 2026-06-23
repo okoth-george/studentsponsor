@@ -16,7 +16,7 @@ DROP TABLE IF EXISTS users             CASCADE;
 
 -- ── USERS ────────────────────────────────────────────────────
 -- Central auth table. Every actor (student, sponsor, admin)
--- has a row here. Role-specific data lives in child tables.
+
 CREATE TABLE users (
   user_id              SERIAL PRIMARY KEY,
   full_name            VARCHAR(100)        NOT NULL,
@@ -41,8 +41,7 @@ CREATE TABLE users (
 );
 
 -- ── REFRESH TOKENS ───────────────────────────────────────────
--- One user can hold multiple refresh tokens (multiple devices).
--- Deleted on logout or expiry.
+
 CREATE TABLE refresh_tokens (
   id          SERIAL PRIMARY KEY,
   user_id     INTEGER   NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -63,9 +62,7 @@ CREATE TABLE password_resets (
 );
 
 -- ── SCHOOLS ──────────────────────────────────────────────────
--- Reference list only in MVP. No school login.
--- Schools are created and managed by admin.
--- paybill_number is where sponsors send payments.
+
 CREATE TABLE schools (
   school_id      SERIAL PRIMARY KEY,
   name           VARCHAR(200) NOT NULL,
@@ -79,11 +76,7 @@ CREATE TABLE schools (
 );
 
 -- ── STUDENTS ─────────────────────────────────────────────────
--- One row per student user. Created immediately on registration.
--- status tracks admin verification of the student profile.
--- doc_url: single fee statement upload for MVP.
---   (Will be migrated to student_documents table in a later phase
---    when per-bursary document requirements are introduced.)
+
 CREATE TABLE students (
   student_id    SERIAL PRIMARY KEY,
   user_id       INTEGER UNIQUE NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -103,17 +96,7 @@ CREATE TABLE students (
 );
 
 -- ── SPONSORS ─────────────────────────────────────────────────
--- One row per sponsor user. Created immediately on registration.
--- Two-gate approval:
---   Gate 1 — email verification (users.is_email_verified = true)
---   Gate 2 — admin approval    (sponsors.status = 'verified')
--- A sponsor must pass BOTH gates before creating bursaries.
--- This prevents fake organizations from posting fraudulent bursaries.
---
--- status lifecycle:
---   pending  → verified  (admin approves)
---   pending  → rejected  (admin rejects — reason in admin_note)
---   verified → rejected  (admin can revoke — e.g. fraud discovered)
+
 CREATE TABLE sponsors (
   sponsor_id        SERIAL PRIMARY KEY,
   user_id           INTEGER UNIQUE NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -133,13 +116,7 @@ CREATE TABLE sponsors (
 );
 
 -- ── BURSARIES ────────────────────────────────────────────────
--- Created by verified sponsors only (enforced in service layer).
--- eligibility_criteria: free text for MVP.
---   (Will become structured JSON in a later phase for auto-matching.)
--- is_active: sponsor can close a bursary early.
--- slots: NULL means unlimited applicants.
--- sponsor_id references sponsors.sponsor_id (not users.user_id)
--- so the FK is to the sponsor profile, not just the user.
+
 CREATE TABLE bursaries (
   bursary_id            SERIAL PRIMARY KEY,
   sponsor_id            INTEGER        NOT NULL REFERENCES sponsors(sponsor_id) ON DELETE CASCADE,
@@ -155,14 +132,7 @@ CREATE TABLE bursaries (
 );
 
 -- ── APPLICATIONS ─────────────────────────────────────────────
--- One row per student-bursary application.
--- A student may not apply to the same bursary twice (unique constraint).
--- status lifecycle:
---   pending → under_review → approved → funded
---   pending → rejected
--- rejection_reason is mandatory when status = 'rejected'
---   (enforced at application layer, not DB level for MVP).
--- reviewed_by: admin user_id who last changed the status.
+
 CREATE TABLE applications (
   application_id    SERIAL PRIMARY KEY,
   student_id        INTEGER      NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
@@ -180,12 +150,7 @@ CREATE TABLE applications (
   UNIQUE (student_id, bursary_id)
 );
 
--- ── PAYMENT RECORDS ──────────────────────────────────────────
--- Created when a sponsor logs a payment for an approved application.
--- EduBridge does NOT hold funds. Sponsor pays to school paybill directly.
--- This table is the transparency and audit layer.
--- school_confirmed: set to true when admin acknowledges receipt.
--- application status moves to 'funded' after school_confirmed = true.
+
 CREATE TABLE payment_records (
   payment_id        SERIAL PRIMARY KEY,
   application_id    INTEGER        NOT NULL REFERENCES applications(application_id) ON DELETE CASCADE,
@@ -224,11 +189,6 @@ CREATE INDEX idx_payment_records_app_id   ON payment_records(application_id);
 CREATE INDEX idx_payment_records_sponsor  ON payment_records(sponsor_id);
 CREATE INDEX idx_payment_records_student  ON payment_records(student_id);
 
--- ============================================================
---  SEED DATA
---  Password for all accounts: Test1234!
---  Hash: bcrypt, cost 10
--- ============================================================
 
 
 -- Schools are managed by admin only.
